@@ -7,6 +7,8 @@ import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
@@ -14,11 +16,11 @@ import javafx.stage.Stage;
 
 public class Main extends Application {
 
-    private static final int CELL_SIZE = 5; // Размер клетки
-    private static final int WIDTH = 1000; // Ширина окна
-    private static final int HEIGHT = 800; // Высота окна
-    private static final int ROWS = HEIGHT / CELL_SIZE; // Количество строк
-    private static final int COLS = WIDTH / CELL_SIZE; // Количество столбцов
+    private static int CELL_SIZE = 5; // Размер клетки
+    private static int WIDTH = 1000; // Ширина окна
+    private static int HEIGHT = 800; // Высота окна
+    private static int ROWS = HEIGHT / CELL_SIZE; // Количество строк
+    private static int COLS = WIDTH / CELL_SIZE; // Количество столбцов
 
     private boolean[][] grid = new boolean[ROWS][COLS]; // Игровое поле
     private AnimationTimer timer; // Таймер для обновления состояния игры
@@ -43,7 +45,39 @@ public class Main extends Application {
         buttonsBox.setAlignment(Pos.CENTER); // выравниваем кнопки по центру
         buttonsBox.setPadding(new Insets(10)); // добавляем отступы вокруг кнопок
 
+        HBox settingsBox = new HBox(10);
+        settingsBox.setAlignment(Pos.CENTER_RIGHT);
+        settingsBox.setPadding(new Insets(10));
+
+        Label widthLabel = new Label("Width:");
+        TextField widthField = new TextField(Integer.toString(WIDTH));
+        widthField.setPrefWidth(60);
+
+        Label heightLabel = new Label("Height:");
+        TextField heightField = new TextField(Integer.toString(HEIGHT));
+        heightField.setPrefWidth(60);
+
+        Label cellSizeLabel = new Label("Cell Size:");
+        TextField cellSizeField = new TextField(Integer.toString(CELL_SIZE));
+        cellSizeField.setPrefWidth(60);
+
+        Button setButton = new Button("Set");
+        setButton.setOnAction(event -> {
+            WIDTH = Integer.parseInt(widthField.getText());
+            HEIGHT = Integer.parseInt(heightField.getText());
+            CELL_SIZE = Integer.parseInt(cellSizeField.getText());
+            canvas.setWidth(WIDTH);
+            canvas.setHeight(HEIGHT);
+            ROWS = HEIGHT / CELL_SIZE; // обновляем количество строк
+            COLS = WIDTH / CELL_SIZE; // обновляем количество столбцов
+            grid = new boolean[ROWS][COLS];
+            randomizeGrid(); // Перерисовываем игровое поле с новыми параметрами
+        });
+
+        settingsBox.getChildren().addAll(widthLabel, widthField, heightLabel, heightField, cellSizeLabel, cellSizeField, setButton);
+
         root.setBottom(buttonsBox);
+        root.setRight(settingsBox);
 
         Scene scene = new Scene(root);
 
