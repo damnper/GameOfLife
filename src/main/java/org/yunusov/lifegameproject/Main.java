@@ -21,6 +21,8 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.Objects;
+
 public class Main extends Application {
 
     private static final int SCREEN_WIDTH = 1920;
@@ -114,7 +116,9 @@ public class Main extends Application {
     private Scene getScene(BorderPane root) {
         Scene scene = new Scene(root);
         // Загрузка файла CSS из пути внутри ресурсов
-        String cssPath = getClass().getResource("/org/yunusov/lifegameproject/styles.css").toExternalForm();
+        String cssPath = Objects.requireNonNullElseGet(getClass().getResource("styles.css"), () -> {
+            throw new RuntimeException("Resource not found: styles.css");
+        }).toExternalForm();
         scene.getStylesheets().add(cssPath);
         return scene;
     }
@@ -167,7 +171,7 @@ public class Main extends Application {
     private static void showErrorListener(BooleanProperty showError, VBox settingsBox, BorderPane root) {
         showError.addListener((obs, oldValue, newValue) -> {
             if (newValue) {
-                Label error = new Label("Некорректные значения");
+                Label error = new Label("Invalid settings");
                 error.setStyle("-fx-font-family: Arial; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: red;");
                 error.setAlignment(Pos.CENTER);
                 error.setPadding(new Insets(10));
@@ -175,7 +179,7 @@ public class Main extends Application {
                 root.setRight(settingsBox);
             } else {
                 // Удаляем надпись об ошибке, если значения верны
-                settingsBox.getChildren().removeIf(node -> node instanceof Label && ((Label) node).getText().equals("Некорректные значения"));
+                settingsBox.getChildren().removeIf(node -> node instanceof Label && ((Label) node).getText().equals("Invalid settings"));
             }
         });
     }
