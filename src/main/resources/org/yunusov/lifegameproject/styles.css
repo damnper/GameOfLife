@@ -1,0 +1,148 @@
+/* styles.css */
+
+#title-label {
+    -fx-font-family: Arial;
+    -fx-font-size: 100px;
+    -fx-font-weight: bold;
+    -fx-text-fill: black;
+}
+
+#timer-label {
+    -fx-font-size: 24px;
+}
+
+#width-label {
+    -fx-font-size: 24px;
+}
+
+#height-label {
+    -fx-font-size: 24px;
+}
+
+#cell-label {
+    -fx-font-size: 24px;
+}
+
+.start-button {
+    -fx-font-size: 36px;
+    -fx-text-fill: white;
+    -fx-background-color: #4CAF50;
+}
+
+.start-button:hover {
+    -fx-background-color: #388E3C;
+    -fx-text-fill: white; /* Цвет текста при наведении */
+    -fx-pref-width: 210; /* Начальная ширина кнопки */
+    -fx-pref-height: 90; /* Начальная высота кнопки */
+    -fx-font-size: 40px; /* Увеличение размера шрифта при наведении */
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 10,0,0,1 ); /* Увеличение тени при наведении */
+}
+
+.start-success {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #28a745; /* Цвет кнопки при успешной установке */
+}
+
+.start-success:hover {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #004165; /* Цвет кнопки при успешной установке */
+}
+
+.stop-button {
+    -fx-font-size: 36px;
+    -fx-text-fill: white;
+    -fx-background-color: #f44336;
+}
+
+.stop-button:hover {
+    -fx-background-color: #D32F2F;
+    -fx-text-fill: white; /* Цвет текста при наведении */
+    -fx-pref-width: 210; /* Начальная ширина кнопки */
+    -fx-pref-height: 90; /* Начальная высота кнопки */
+    -fx-font-size: 40px; /* Увеличение размера шрифта при наведении */
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 10,0,0,1 ); /* Увеличение тени при наведении */
+}
+
+.stop-success {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #28a745; /* Цвет кнопки при успешной установке */
+}
+
+.stop-success:hover {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #004165; /* Цвет кнопки при успешной установке */
+}
+
+.set-button {
+    -fx-font-size: 24px;
+    -fx-background-color: #007bff; /* Начальный цвет кнопки */
+    -fx-text-fill: white; /* Цвет текста при наведении */
+    -fx-pref-width: 160; /* Начальная ширина кнопки */
+    -fx-pref-height: 60; /* Начальная высота кнопки */
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 0,0,0,1 ); /* Добавление тени */
+    -fx-transition: all 0.05s; /* Продолжительность анимации 0.5 секунды */
+}
+
+.set-button:hover {
+    -fx-background-color: #1976D2; /* Цвет кнопки при наведении */
+    -fx-text-fill: white; /* Цвет текста при наведении */
+    -fx-pref-width: 170; /* Начальная ширина кнопки */
+    -fx-pref-height: 70; /* Начальная высота кнопки */
+    -fx-font-size: 26px; /* Увеличение размера шрифта при наведении */
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 10,0,0,1 ); /* Увеличение тени при наведении */
+}
+
+.set-success {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #28a745; /* Цвет кнопки при успешной установке */
+}
+
+.set-success:hover {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #004165; /* Цвет кнопки при успешной установке */
+}
+
+.resume-button {
+    -fx-background-color: #fd7e14;
+    -fx-text-fill: white;
+    -fx-font-size: 40px;
+}
+
+.resume-button:hover {
+    -fx-background-color: #d3610a;
+    -fx-text-fill: white; /* Цвет текста при наведении */
+    -fx-pref-width: 210; /* Начальная ширина кнопки */
+    -fx-pref-height: 90; /* Начальная высота кнопки */
+    -fx-font-size: 40px; /* Увеличение размера шрифта при наведении */
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 10,0,0,1 ); /* Увеличение тени при наведении */
+}
+
+.resume-success {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #28a745; /* Цвет кнопки при успешной установке */
+}
+
+.resume-success:hover {
+    -fx-pref-width: 150; /* Ширина кнопки при успешной установке */
+    -fx-pref-height: 60; /* Высота кнопки при успешной установке */
+    -fx-background-color: #004165; /* Цвет кнопки при успешной установке */
+}
+
+.timer-label {
+    -fx-font-family: Arial;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #007bff; /* Blue color */
+}
+
+
+
+
+

@@ -1,8 +1,11 @@
 package org.yunusov.lifegameproject;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -16,6 +19,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 
 public class Main extends Application {
 
@@ -29,6 +33,11 @@ public class Main extends Application {
 
     private boolean[][] grid = new boolean[ROWS][COLS]; // Игровое поле
     private AnimationTimer timer; // Таймер для обновления состояния игры
+    private long startTime;
+    private long pauseStartTime = 0;
+    Button startButton;
+    Button stopButton;
+    Button resumeButton;
 
     @Override
     public void start(Stage primaryStage) {
@@ -38,83 +47,146 @@ public class Main extends Application {
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
         root.setCenter(canvas);
 
-        Label titleLabel = new Label("GAME OF LIFE");
-        titleLabel.setStyle("-fx-font-family: Arial; -fx-font-size: 100px; -fx-font-weight: bold; -fx-text-fill: black;");
-        titleLabel.setAlignment(Pos.CENTER);
-        titleLabel.setPadding(new Insets(10));
+        Label timerLabel = createLabel("Timer: 0 seconds", "timer-label", "timer-label");
 
-        Button startButton = new Button("Start");
-        startButton.setPrefSize(200, 80); // устанавливаем размер кнопки
-        startButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 36px;"); // устанавливаем цвет и стиль текста
-        startButton.setOnMouseEntered(e -> startButton.setStyle("-fx-background-color: #388E3C; -fx-text-fill: white; -fx-font-size: 36px;")); // изменяем цвет при наведении мыши
-        startButton.setOnMouseExited(e -> startButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 36px;")); // возвращаем исходный цвет при уходе мыши
-        startButton.setOnAction(event -> startGame(canvas.getGraphicsContext2D()));
+        Label titleLabel = createLabel("GAME OF LIFE", "title-label", "title-label");
 
-        Button stopButton = new Button("Stop");
-        stopButton.setPrefSize(200, 80); // устанавливаем размер кнопки
-        stopButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 36px;"); // устанавливаем цвет и стиль текста
-        stopButton.setOnMouseEntered(e -> stopButton.setStyle("-fx-background-color: #D32F2F; -fx-text-fill: white; -fx-font-size: 36px;")); // изменяем цвет при наведении мыши
-        stopButton.setOnMouseExited(e -> stopButton.setStyle("-fx-background-color: #f44336; -fx-text-fill: white; -fx-font-size: 36px;")); // возвращаем исходный цвет при уходе мыши
-        stopButton.setOnAction(event -> stopGame());
+        startButton = createButton("Start",
+                "start-button",
+                "start-button:hover",
+                event -> startGame(startButton, timerLabel, canvas.getGraphicsContext2D()));
+        stopButton = createButton("Stop",
+                "stop-button",
+                "stop-button:hover",
+                event -> stopGame(stopButton));
+        resumeButton = createButton("Resume",
+                "resume-button",
+                "resume-button:hover",
+                event -> resumeGame(resumeButton));
 
-        HBox buttonsBox = new HBox(10, startButton, stopButton);
-        buttonsBox.setAlignment(Pos.CENTER); // выравниваем кнопки по центру
-        buttonsBox.setPadding(new Insets(20)); // добавляем отступы вокруг кнопок
+        var buttonsBox = getButtonsBox(startButton, stopButton, resumeButton);
 
+        var settingsBox = getSettingsBox();
+
+        var widthSetting = getWidthSetting(showError);
+
+        var heightSetting = getHeightSetting(showError);
+
+        var cellSizeSetting = getCellSizeSetting(showError);
+
+        showErrorListener(showError, settingsBox, root);
+
+        var setButton = getSetButton(widthSetting, heightSetting, cellSizeSetting, canvas);
+
+        settingsBox.getChildren().addAll(timerLabel, widthSetting.widthLabel(), widthSetting.widthField(), heightSetting.heightLabel(), heightSetting.heightField(), cellSizeSetting.cellSizeLabel(), cellSizeSetting.cellSizeField(), setButton);
+
+        setRoot(root, buttonsBox, settingsBox, titleLabel);
+
+        var scene = getScene(root);
+
+        serPrimaryStage(primaryStage, scene);
+
+        // Заполнение игрового поля случайными значениями
+        randomizeGrid();
+    }
+
+    private static VBox getSettingsBox() {
         VBox settingsBox = new VBox(10);
         settingsBox.setAlignment(Pos.CENTER);
         settingsBox.setMinWidth(250);
         settingsBox.setPadding(new Insets(10));
+        return settingsBox;
+    }
 
-        Label widthLabel = new Label("Width:");
-        widthLabel.setStyle("-fx-font-size: 24px;"); // Устанавливаем размер шрифта
-        TextField widthField = new TextField(Integer.toString(WIDTH));
-        widthField.setStyle("-fx-font-size: 24px;"); // Устанавливаем размер шрифта
-        widthField.setPrefWidth(100);
+    private static HBox getButtonsBox(Button startButton, Button stopButton, Button resumeButton) {
+        HBox buttonsBox = new HBox(10, startButton, stopButton, resumeButton);
+        buttonsBox.setAlignment(Pos.CENTER); // выравниваем кнопки по центру
+        buttonsBox.setPadding(new Insets(20)); // добавляем отступы вокруг кнопок
+        return buttonsBox;
+    }
 
-        widthField.setOnKeyTyped(e -> {
-            String text = widthField.getText();
-            try {
-                if (!text.matches("\\d*")) {
-                    widthField.setText(text.replaceAll("\\D", ""));
-                }
-                int width = Integer.parseInt(widthField.getText());
-                if (width > SCREEN_WIDTH - 200) { // 200 - ширина кнопок и сеттингс
-                    widthField.setText(Integer.toString(SCREEN_WIDTH - 200));
-                } else {
-                    showError.set(false);
-                }
-            } catch (RuntimeException exception) {
-                showError.set(true);
+    private static void serPrimaryStage(Stage primaryStage, Scene scene) {
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Game of Life");
+        primaryStage.show();
+    }
+
+    private Scene getScene(BorderPane root) {
+        Scene scene = new Scene(root);
+        // Загрузка файла CSS из пути внутри ресурсов
+        String cssPath = getClass().getResource("/org/yunusov/lifegameproject/styles.css").toExternalForm();
+        scene.getStylesheets().add(cssPath);
+        return scene;
+    }
+
+    private static void setRoot(BorderPane root, HBox buttonsBox, VBox settingsBox, Label titleLabel) {
+        root.setBottom(buttonsBox);
+        root.setRight(settingsBox);
+        root.setTop(titleLabel);
+    }
+
+    private Button getSetButton(WidthSetting widthSetting, HeightSetting heightSetting, CellSizeSetting cellSizeSetting, Canvas canvas) {
+        Button setButton = new Button("Set");
+        setButton.getStyleClass().add("set-button"); // устанавливаем цвет и стиль текста
+        setButton.setOnMouseEntered(e -> setButton.getStyleClass().add("set-button:hover")); // изменяем цвет при наведении мыши
+        setButton.setOnAction(event -> {
+            addStyleOnClick(setButton, "set-success");
+
+            WIDTH = Integer.parseInt(widthSetting.widthField().getText());
+            HEIGHT = Integer.parseInt(heightSetting.heightField().getText());
+            CELL_SIZE = Integer.parseInt(cellSizeSetting.cellSizeField().getText());
+
+            // Устанавливаем новые размеры для холста
+            canvas.setWidth(WIDTH);
+            canvas.setHeight(HEIGHT);
+
+            // Обновляем количество строк и столбцов
+            ROWS = HEIGHT / CELL_SIZE;
+            COLS = WIDTH / CELL_SIZE;
+
+            // Перерисовываем игровое поле с новыми параметрами
+            grid = new boolean[ROWS][COLS];
+            randomizeGrid();
+        });
+        return setButton;
+    }
+
+    private static void addStyleOnClick(Button setButton, String cssTitle) {
+        // Добавление класса для изменения стиля
+        setButton.getStyleClass().add(cssTitle);
+
+        // Установка паузы для временного применения стиля
+        PauseTransition pause = new PauseTransition(Duration.seconds(0.1));
+        pause.setOnFinished(e -> {
+            // Удаление класса после окончания паузы
+            setButton.getStyleClass().remove(cssTitle);
+        });
+        pause.play(); // Запуск паузы
+    }
+
+    private static void showErrorListener(BooleanProperty showError, VBox settingsBox, BorderPane root) {
+        showError.addListener((obs, oldValue, newValue) -> {
+            if (newValue) {
+                Label error = new Label("Некорректные значения");
+                error.setStyle("-fx-font-family: Arial; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: red;");
+                error.setAlignment(Pos.CENTER);
+                error.setPadding(new Insets(10));
+                settingsBox.getChildren().add(error);
+                root.setRight(settingsBox);
+            } else {
+                // Удаляем надпись об ошибке, если значения верны
+                settingsBox.getChildren().removeIf(node -> node instanceof Label && ((Label) node).getText().equals("Некорректные значения"));
             }
         });
+    }
 
-        Label heightLabel = new Label("Height:");
-        heightLabel.setStyle("-fx-font-size: 24px;"); // Устанавливаем размер шрифта
-        TextField heightField = new TextField(Integer.toString(HEIGHT));
-        heightField.setStyle("-fx-font-size: 24px;");
-        heightField.setPrefWidth(100);
-        heightField.setOnKeyTyped(e -> {
-            String text = heightField.getText();
-            try {
-                if (!text.matches("\\d*")) {
-                    heightField.setText(text.replaceAll("\\D", ""));
-                }
-                int height = Integer.parseInt(heightField.getText());
-                if (height > SCREEN_HEIGHT - 300) { // 200 - ширина кнопок и сеттингс
-                    heightField.setText(Integer.toString(SCREEN_HEIGHT - 300));
-                } else {
-                    showError.set(false);
-                }
-            } catch (RuntimeException exception) {
-                showError.set(true);
-            }
-        });
-
+    private static CellSizeSetting getCellSizeSetting(BooleanProperty showError) {
         Label cellSizeLabel = new Label("Cell Size:");
-        cellSizeLabel.setStyle("-fx-font-size: 24px;"); // Устанавливаем размер шрифта
+        cellSizeLabel.getStyleClass().add("cell-label"); // Устанавливаем размер шрифта
+        cellSizeLabel.setId("cell-label");
         TextField cellSizeField = new TextField(Integer.toString(CELL_SIZE));
-        cellSizeField.setStyle("-fx-font-size: 24px;"); // Устанавливаем размер шрифта
+        cellSizeField.getStyleClass().add("cell-label"); // Устанавливаем размер шрифта
+        cellSizeField.setId("cell-label");
         cellSizeField.setPrefWidth(100);
         cellSizeField.setOnKeyTyped(e -> {
             String text = cellSizeField.getText();
@@ -134,57 +206,89 @@ public class Main extends Application {
                 showError.set(true);
             }
         });
+        return new CellSizeSetting(cellSizeLabel, cellSizeField);
+    }
 
-        showError.addListener((obs, oldValue, newValue) -> {
-            if (newValue) {
-                Label error = new Label("Некорректные значения");
-                error.setStyle("-fx-font-family: Arial; -fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: red;");
-                error.setAlignment(Pos.CENTER);
-                error.setPadding(new Insets(10));
-                settingsBox.getChildren().add(error);
-                root.setRight(settingsBox);
-            } else {
-                // Удаляем надпись об ошибке, если значения верны
-                settingsBox.getChildren().removeIf(node -> node instanceof Label && ((Label) node).getText().equals("Некорректные значения"));
+    private record CellSizeSetting(Label cellSizeLabel, TextField cellSizeField) {
+    }
+
+    private static HeightSetting getHeightSetting(BooleanProperty showError) {
+        Label heightLabel = new Label("Height:");
+        heightLabel.getStyleClass().add("height-label"); // Устанавливаем размер шрифта
+        heightLabel.setId("height-label");
+        TextField heightField = new TextField(Integer.toString(HEIGHT));
+        heightField.getStyleClass().add("height-label");
+        heightField.setId("height-label");
+        heightField.setPrefWidth(100);
+        heightField.setOnKeyTyped(e -> {
+            String text = heightField.getText();
+            try {
+                if (!text.matches("\\d*")) {
+                    heightField.setText(text.replaceAll("\\D", ""));
+                }
+                int height = Integer.parseInt(heightField.getText());
+                if (height > SCREEN_HEIGHT - 300) { // 200 - ширина кнопок и сеттингс
+                    heightField.setText(Integer.toString(SCREEN_HEIGHT - 300));
+                } else {
+                    showError.set(false);
+                }
+            } catch (RuntimeException exception) {
+                showError.set(true);
             }
         });
+        return new HeightSetting(heightLabel, heightField);
+    }
 
-        Button setButton = new Button("Set");
-        setButton.setStyle("-fx-background-color: blue; -fx-text-fill: white; -fx-font-size: 24px;"); // устанавливаем цвет и стиль текста
-        setButton.setOnMouseEntered(e -> setButton.setStyle("-fx-background-color: #1976D2; -fx-text-fill: white; -fx-font-size: 24px;")); // изменяем цвет при наведении мыши
-        setButton.setOnMouseExited(e -> setButton.setStyle("-fx-background-color: blue; -fx-text-fill: white; -fx-font-size: 24px;")); // возвращаем исходный цвет при уходе мыши
-        setButton.setOnAction(event -> {
-            WIDTH = Integer.parseInt(widthField.getText());
-            HEIGHT = Integer.parseInt(heightField.getText());
-            CELL_SIZE = Integer.parseInt(cellSizeField.getText());
+    private record HeightSetting(Label heightLabel, TextField heightField) {
+    }
 
-            // Устанавливаем новые размеры для холста
-            canvas.setWidth(WIDTH);
-            canvas.setHeight(HEIGHT);
+    private static WidthSetting getWidthSetting(BooleanProperty showError) {
+        Label widthLabel = new Label("Width:");
+        widthLabel.getStyleClass().add("width-label"); // Устанавливаем размер шрифта
+        widthLabel.setId("width-label");
+        TextField widthField = new TextField(Integer.toString(WIDTH));
+        widthField.getStyleClass().add("width-label"); // Устанавливаем размер шрифта
+        widthField.setPrefWidth(100);
+        widthField.setId("width-label");
 
-            // Обновляем количество строк и столбцов
-            ROWS = HEIGHT / CELL_SIZE;
-            COLS = WIDTH / CELL_SIZE;
-
-            // Перерисовываем игровое поле с новыми параметрами
-            grid = new boolean[ROWS][COLS];
-            randomizeGrid();
+        widthField.setOnKeyTyped(e -> {
+            String text = widthField.getText();
+            try {
+                if (!text.matches("\\d*")) {
+                    widthField.setText(text.replaceAll("\\D", ""));
+                }
+                int width = Integer.parseInt(widthField.getText());
+                if (width > SCREEN_WIDTH - 420) { // 200 - ширина кнопок и сеттингс
+                    widthField.setText(Integer.toString(SCREEN_WIDTH - 420));
+                } else {
+                    showError.set(false);
+                }
+            } catch (RuntimeException exception) {
+                showError.set(true);
+            }
         });
+        return new WidthSetting(widthLabel, widthField);
+    }
 
-        settingsBox.getChildren().addAll(widthLabel, widthField, heightLabel, heightField, cellSizeLabel, cellSizeField, setButton);
+    private record WidthSetting(Label widthLabel, TextField widthField) {
+    }
 
-        root.setBottom(buttonsBox);
-        root.setRight(settingsBox);
-        root.setTop(titleLabel);
+    private Button createButton(String text, String cssBaseStyle, String cssOnMouseEntered, EventHandler<ActionEvent> action) {
+        Button button = new Button(text);
+        button.setPrefSize(200, 80);
+        button.getStyleClass().add(cssBaseStyle);
+        button.setOnAction(action);
+        button.setOnMouseEntered(e -> button.setStyle(cssOnMouseEntered));
+        return button;
+    }
 
-        Scene scene = new Scene(root);
-
-        primaryStage.setScene(scene);
-        primaryStage.setTitle("Game of Life");
-        primaryStage.show();
-
-        // Заполнение игрового поля случайными значениями
-        randomizeGrid();
+    private Label createLabel(String title, String style, String id) {
+        Label label = new Label(title);
+        label.getStyleClass().add(style);
+        label.setAlignment(Pos.CENTER);
+        label.setPadding(new Insets(10));
+        label.setId(id); // Установка идентификатора
+        return label;
     }
 
     private void randomizeGrid() {
@@ -195,28 +299,41 @@ public class Main extends Application {
         }
     }
 
-    private void startGame(GraphicsContext gc) {
-        if (timer == null) {
-            timer = new AnimationTimer() {
-                private long lastUpdate = 0;
+    public void startGame(Button startButton, Label timerLabel, GraphicsContext gc) {
+        addStyleOnClick(startButton, "start-success");
+        randomizeGrid();
+        timer = new AnimationTimer() {
+            private long lastUpdate = 0;
 
-                @Override
-                public void handle(long now) {
-                    if (now - lastUpdate >= 100_000_000) { // Ограничение частоты обновления
-                        update(); // Обновление состояния клеток
-                        draw(gc); // Визуализация состояния клеток
-                        lastUpdate = now;
-                    }
+            @Override
+            public void handle(long now) {
+                if (now - lastUpdate >= 100_000_000) { // Ограничение частоты обновления
+                    update(); // Обновление состояния клеток
+                    draw(gc); // Визуализация состояния клеток
+                    lastUpdate = now;
                 }
-            };
+                long elapsedTime = (now - startTime) / 1_000_000_000; // Convert nanoseconds to seconds
+                timerLabel.setText("Timer: " + elapsedTime + " seconds");
+
+            }
+        };
+        startTime = System.nanoTime();
+        timer.start();
+    }
+
+    private void resumeGame(Button resumeButton) {
+        if (timer != null) {
+            addStyleOnClick(resumeButton, "resume-success");
+            startTime += System.nanoTime() - pauseStartTime;
             timer.start();
         }
     }
 
-    private void stopGame() {
+    private void stopGame(Button stopButton) {
         if (timer != null) {
+            addStyleOnClick(stopButton, "stop-success");
             timer.stop();
-            timer = null;
+            pauseStartTime = System.nanoTime();
         }
     }
 
