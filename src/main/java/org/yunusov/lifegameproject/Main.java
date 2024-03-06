@@ -21,6 +21,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 public class Main extends Application {
@@ -34,6 +35,9 @@ public class Main extends Application {
     private static int COLS = WIDTH / CELL_SIZE; // Количество столбцов
 
     private boolean[][] grid = new boolean[ROWS][COLS]; // Игровое поле
+    private boolean[][] futureGrid = new boolean[ROWS][COLS];
+    private boolean[][] deadGrid = new boolean[ROWS][COLS];
+
     private AnimationTimer timer; // Таймер для обновления состояния игры
     private long startTime;
     private long pauseStartTime = 0;
@@ -52,6 +56,10 @@ public class Main extends Application {
         Label timerLabel = createLabel("Timer: 0 seconds", "timer-label", "timer-label");
 
         Label titleLabel = createLabel("GAME OF LIFE", "title-label", "title-label");
+
+        Label infoBlackColorLabel = createLabel("Black cells - still alive cells", "info-cell-black-label", "info-cell-black-label");
+        Label infoGrayColorLabel = createLabel("Grey cells - cells will die for next step", "info-cell-gray-label", "info-cell-gray-label");
+        Label infoRedColorLabel = createLabel("Red cells - cells will born for next step", "info-cell-red-label", "info-cell-red-label");
 
         startButton = createButton("Start",
                 "start-button",
@@ -80,7 +88,7 @@ public class Main extends Application {
 
         var setButton = getSetButton(widthSetting, heightSetting, cellSizeSetting, canvas);
 
-        settingsBox.getChildren().addAll(timerLabel, widthSetting.widthLabel(), widthSetting.widthField(), heightSetting.heightLabel(), heightSetting.heightField(), cellSizeSetting.cellSizeLabel(), cellSizeSetting.cellSizeField(), setButton);
+        settingsBox.getChildren().addAll(infoBlackColorLabel, infoGrayColorLabel, infoRedColorLabel, timerLabel, widthSetting.widthLabel(), widthSetting.widthField(), heightSetting.heightLabel(), heightSetting.heightField(), cellSizeSetting.cellSizeLabel(), cellSizeSetting.cellSizeField(), setButton);
 
         setRoot(root, buttonsBox, settingsBox, titleLabel);
 
@@ -311,7 +319,7 @@ public class Main extends Application {
 
             @Override
             public void handle(long now) {
-                if (now - lastUpdate >= 100_000_000) { // Ограничение частоты обновления
+                if (now - lastUpdate >= 1_000_000_000) { // Ограничение частоты обновления
                     update(); // Обновление состояния клеток
                     draw(gc); // Визуализация состояния клеток
                     lastUpdate = now;
@@ -343,10 +351,12 @@ public class Main extends Application {
 
     private void update() {
         boolean[][] nextGeneration = new boolean[ROWS][COLS];
+        boolean[][] secondNextGeneration = new boolean[ROWS][COLS];
+        boolean[][] deadGeneration = new boolean[ROWS][COLS];
 
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
-                int neighbors = countNeighbors(row, col);
+                int neighbors = countNeighbors(row, col, grid);
                 if (grid[row][col]) {
                     nextGeneration[row][col] = (neighbors == 2 || neighbors == 3);
                 } else {
@@ -355,16 +365,49 @@ public class Main extends Application {
             }
         }
 
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                int neighbors = countNeighbors(row, col, nextGeneration);
+                if (nextGeneration[row][col]) {
+                    secondNextGeneration[row][col] = (neighbors == 2 || neighbors == 3);
+                } else {
+                    secondNextGeneration[row][col] = (neighbors == 3);
+                }
+            }
+        }
+
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                int neighbors = countNeighbors(row, col, nextGeneration);
+                if (nextGeneration[row][col]) {
+                    deadGeneration[row][col] = (neighbors < 2 || neighbors > 3);
+                }
+            }
+        }
+
         grid = nextGeneration;
+        futureGrid = secondNextGeneration;
+        deadGrid = deadGeneration;
+        validateFutureFromGrid();
     }
 
-    private int countNeighbors(int row, int col) {
+    private void validateFutureFromGrid() {
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (grid[row][col] == futureGrid[row][col]) {
+                    futureGrid[row][col] = false;
+                }
+            }
+        }
+    }
+
+    private int countNeighbors(int row, int col, boolean[][] gridType) {
         int count = 0;
         for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 int r = (row + i + ROWS) % ROWS;
                 int c = (col + j + COLS) % COLS;
-                if (!(i == 0 && j == 0) && grid[r][c]) {
+                if (!(i == 0 && j == 0) && gridType[r][c]) {
                     count++;
                 }
             }
@@ -378,6 +421,22 @@ public class Main extends Application {
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
                 if (grid[row][col]) {
+                    gc.fillRect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+        }
+        gc.setStroke(Color.RED);
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (futureGrid[row][col]) {
+                    gc.strokeRect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                }
+            }
+        }
+        gc.setFill(Color.GREY);
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (deadGrid[row][col]) {
                     gc.fillRect(col * CELL_SIZE, row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 }
             }
